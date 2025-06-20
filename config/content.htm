@@ -417,7 +417,7 @@
 <p style="padding-left: 30px;"><span>操作者可利用鍵盤特定按鍵控制投籃輪車的移動並發射投籃, 每投出一球後系統透過記分板進行計分, 並由送球機構進行補球或移動輪車取球, 遊戲可進行至全部數量籃球投完為止.</span></p>
 <p>請將期末協同專案執行過程、內容與心得, 製作成影片，配合字幕上傳至 Youtube 後嵌入各階段的期末報告頁面中.</p>
 <p>影片標題: <span style="background-color: #ffff00;">國立虎尾科技大學 - 機械設計工程系 - cd2025 期末報告 - 學員學號 - 各階段影片主題<br/></span></p>
-<p><span style="background-color: #ffff00;"><span>投球數量限制:</span></span></p>
+<p><span style="background-color: #ff00ff;">投球數量限制:</span></p>
 <p><iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="allowfullscreen" frameborder="0" height="315" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/qRCRTVoCjM0?si=apNKdwnpX-If5G5i" title="YouTube video player" width="560"></iframe></p>
 <pre class="brush:html;auto-links:false;toolbar:false" contenteditable="false">from controller import Supervisor, Keyboard
 import time
@@ -641,6 +641,193 @@ while supervisor.step(timestep) != -1:
         else:
             delete_trajectory_points()
             current_tracked_def = None
+</pre>
+<p><span style="background-color: #ff00ff;">投球機構自動賦歸:</span></p>
+<p><iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="allowfullscreen" frameborder="0" height="315" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/qRCRTVoCjM0?si=OVfxsLzLXruMfh7b" title="YouTube video player" width="560"></iframe></p>
+<pre class="brush:html;auto-links:false;toolbar:false" contenteditable="false">from controller import Robot, Keyboard
+import time  # 為了賦歸計時
+
+# === 常數定義 ===
+TIME_STEP = 32
+MAX_VELOCITY = 10.0
+ANGLE_STEP = 40 * 3.14159 / 180  # 40 度轉為弧度
+POSITION_M = ANGLE_STEP          # 升起位置 (+40°)
+POSITION_K = 0.0                 # 回復位置 (0°)
+
+# === 初始化 Webots 裝置 ===
+robot = Robot()
+timestep = int(robot.getBasicTimeStep())
+
+keyboard = Keyboard()
+keyboard.enable(timestep)
+
+# === 嘗試取得馬達與感測器 ===
+try:
+    motor = robot.getDevice('motor1')
+    sensor = robot.getDevice('motor1_sensor')
+    sensor.enable(timestep)
+    mechanism_enabled = True
+except Exception:
+    mechanism_enabled = False
+
+# === 嘗試取得輪子裝置 ===
+try:
+    wheels = [robot.getDevice(f"wheel{i+1}") for i in range(4)]
+    for wheel in wheels:
+        wheel.setPosition(float('inf'))  # 啟用速度模式
+        wheel.setVelocity(0)             # 初始速度為 0
+    platform_enabled = True
+except Exception:
+    platform_enabled = False
+
+# === 初始提示 ===
+print("使用方向鍵控制平台移動：↑ 前進，↓ 後退，← 左轉，→ 右轉")
+print("按 M 可升起機構，將於 1 秒後自動回復")
+print("按 Q 離開程式")
+
+# === 馬達控制狀態 ===
+key_pressed = {'m': False}
+mechanism_raised = False       # 是否目前為升起狀態
+raise_start_time = None        # 升起開始時間（記錄用）
+
+# === 主控制迴圈 ===
+while robot.step(timestep) != -1:
+    key = keyboard.getKey()
+    current_time = time.time()
+
+    # === 四輪平台移動控制 ===
+    if platform_enabled:
+        if key == Keyboard.UP:
+            for wheel in wheels:
+                wheel.setVelocity(MAX_VELOCITY)
+        elif key == Keyboard.DOWN:
+            for wheel in wheels:
+                wheel.setVelocity(-MAX_VELOCITY)
+        elif key == Keyboard.LEFT:
+            wheels[0].setVelocity(MAX_VELOCITY)
+            wheels[1].setVelocity(-MAX_VELOCITY)
+            wheels[2].setVelocity(MAX_VELOCITY)
+            wheels[3].setVelocity(-MAX_VELOCITY)
+        elif key == Keyboard.RIGHT:
+            wheels[0].setVelocity(-MAX_VELOCITY)
+            wheels[1].setVelocity(MAX_VELOCITY)
+            wheels[2].setVelocity(-MAX_VELOCITY)
+            wheels[3].setVelocity(MAX_VELOCITY)
+        elif key == ord('Q') or key == ord('q'):
+            print("離開程式...")
+            break
+        else:
+            for wheel in wheels:
+                wheel.setVelocity(0)
+
+    # === 機構升起＋自動賦歸控制 ===
+    if mechanism_enabled:
+        motor_position = sensor.getValue()
+
+        # 按下 M 鍵時觸發升起（且尚未升起）
+        if key == ord('M') or key == ord('m'):
+            if not key_pressed['m'] and not mechanism_raised:
+                motor.setPosition(POSITION_M)
+                print("投球")
+                mechanism_raised = True
+                raise_start_time = current_time
+            key_pressed['m'] = True
+        else:
+            key_pressed['m'] = False
+
+        # 已升起 → 檢查是否超過1秒 → 回復
+        if mechanism_raised and raise_start_time is not None:
+            if current_time - raise_start_time &gt;= 1.0:
+                motor.setPosition(POSITION_K)
+                print("自動回復")
+                mechanism_raised = False
+                raise_start_time = None
+</pre>
+<p><span style="background-color: #ff00ff;">籃框隨機移動和感測器角度調整:</span></p>
+<p><iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="allowfullscreen" frameborder="0" height="315" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/ABK-A6Oft1g?si=B2YoTbLO4AOofLon" title="YouTube video player" width="560"></iframe></p>
+<pre class="brush:html;auto-links:false;toolbar:false" contenteditable="false">from controller import Robot
+import random
+
+# === 常數 ===
+MAX_VELOCITY = 10.0
+MOVE_DURATION = 1.5
+DISTANCE_THRESHOLD = 0.17
+SCORE_INTERVAL = 1.0  # 避免連續得分
+
+# === 初始化 ===
+robot = Robot()
+timestep = int(robot.getBasicTimeStep())
+emitter = robot.getDevice("score_emitter")
+score_to_send = 2
+sensor = robot.getDevice('sensor')
+sensor.enable(timestep)
+
+# === 馬達 ===
+wheels = [robot.getDevice(f"wheel{i}") for i in range(5, 9)]
+for w in wheels:
+    w.setPosition(float('inf'))
+    w.setVelocity(0)
+
+def set_wheel_velocity(v1, v2, v3, v4):
+    wheels[0].setVelocity(v1)
+    wheels[1].setVelocity(v2)
+    wheels[2].setVelocity(v3)
+    wheels[3].setVelocity(v4)
+
+# === AD轉距離對照表 ===
+lookup_table = [
+    (1000, 0.00), (620, 0.12), (372, 0.13),
+    (248, 0.14), (186, 0.15), (0, 0.18)
+]
+
+def ad_to_distance(ad_value):
+    for i in range(len(lookup_table) - 1):
+        a0, d0 = lookup_table[i]
+        a1, d1 = lookup_table[i + 1]
+        if a1 &lt;= ad_value &lt;= a0:
+            return d0 + (d1 - d0) * (ad_value - a0) / (a1 - a0)
+    return lookup_table[0][1] if ad_value &gt; lookup_table[0][0] else lookup_table[-1][1]
+
+# === 狀態 ===
+score = 0
+last_score_time = 0
+is_moving = False
+move_timer = 0
+current_velocity = (0, 0, 0, 0)
+last_time = robot.getTime()
+
+print("⚙️ 初始靜止：當感測器感應到球時得分，然後才啟動隨機移動")
+
+# === 主迴圈 ===
+while robot.step(timestep) != -1:
+    now = robot.getTime()
+    dt = now - last_time
+    last_time = now
+
+    sensor_value = sensor.getValue()
+    distance = ad_to_distance(sensor_value)
+
+    if is_moving:
+        set_wheel_velocity(*current_velocity)
+        move_timer -= dt
+        if move_timer &lt;= 0:
+            # 移動時間結束，停止
+            is_moving = False
+            set_wheel_velocity(0, 0, 0, 0)
+    else:
+        set_wheel_velocity(0, 0, 0, 0)
+        if distance &lt; DISTANCE_THRESHOLD and (now - last_score_time) &gt; SCORE_INTERVAL:
+            # 得分並開始移動
+            score += score_to_send
+            print(f"🎯 得分！距離 {distance:.3f} m，總分：{score}")
+            emitter.send(str(score_to_send).encode('utf-8'))
+            last_score_time = now
+
+            # 啟動隨機移動
+            def rv(): return random.uniform(-MAX_VELOCITY, MAX_VELOCITY)
+            current_velocity = (rv(), rv(), rv(), rv())
+            move_timer = MOVE_DURATION
+            is_moving = True
 </pre>
 <p>我先做球數定量限制的部分，我用原本的生成球程式來進行修改，保留原本透過按鍵來生成球的部分，另外再讓ChatGPT幫我加入，生成球數的限制，當總生成球數等於8球時，並停止按鍵生成球的功能，來達到意義上的定量限制，當然也能更改成更多或更少球數</p><h1>Brython</h1>
 <p><button id="add1to100">1 add to 100</button></p>
