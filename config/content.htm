@@ -839,7 +839,7 @@ while robot.step(timestep) != -1:
 <p><span style="background-color: #ff00ff;">檔案下載:</span></p>
 <p><span><a href="/downloads/cd2025_final_41223126.zip">cd2025_final_41223126.7z</a></span></p>
 <p><span></span><span style="background-color: #ff00ff;">報告:</span></p>
-<p><span style="background-color: #ff00ff;"><a href="/downloads/cd2025-ag-5-期末報告.pdf">cd2025-ag-5-期末報告.pdf</a></span></p>
+<p><a href="/downloads/cd2025-ag-5-期末報告.pdf">cd2025-ag-5-期末報告.pdf</a></p>
 <p><span style="background-color: #ff00ff;">心得:</span></p>
 <p>一開始我先做球數定量限制的部分，我用原本的生成球程式來進行修改，保留原本透過按鍵來生成球的部分，另外再讓<span>ChatGPT</span>幫我加入，生成球數的限制，當總生成球數等於8球時，送出訊息<span>[</span>遊戲結束，已投出8球<span>]</span>，並停止按鍵生成球的功能，來達到意義上的定量限制，當然也能更改成更多或更少球數。投籃機的本體部分，我將原先的投籃機制做了改變，原本是按下<span>M</span>驅動擺臂投出球，按下<span>K</span>讓擺臂回到<span>0</span>度，也就是初始的位置，我將以上兩個按鍵的功能進行整合，變成按下<span>M</span>投出後等待<span>1</span>秒後回歸到原點，這樣可以避免還沒將擺臂正，就將球生成導致兩者相互碰撞，偏移原本的準心和浪費一次投球的機會。籃框隨機移動的部分，我使用原本的程式將裡面的控制部分移除，讓<span>ChatGPT</span>幫我寫一個當得分偵測器，偵測到進球得分後，雖機的進行小幅度移動，來改變籃框的位置，所以每進一球，籃框就會透過移動或旋轉來改變位置，直到遊戲結束</p><h1>Brython</h1>
 <p><button id="add1to100">1 add to 100</button></p>
